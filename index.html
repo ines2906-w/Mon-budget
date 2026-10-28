@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Mon Budget">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/FFC0CB/FFFFFF?text=Budget">
+    
+    <title>Mon Budget ✨</title>
+    <style>
+        :root {
+            --pink-light: #FDE8ED;
+            --pink-medium: #F8C8D4;
+            --pink-dark: #E598AB;
+            --white: #FFFFFF;
+            --text: #5A4A4D;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--pink-light);
+            color: var(--text);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--pink-dark);
+        }
+
+        .card {
+            background-color: var(--white);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(229, 152, 171, 0.15);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--pink-dark);
+        }
+
+        input {
+            border: 2px solid var(--pink-light);
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 16px;
+            outline: none;
+            color: var(--text);
+            transition: 0.3s;
+            background-color: #FAFAFA;
+        }
+
+        input:focus {
+            border-color: var(--pink-medium);
+            background-color: var(--white);
+        }
+
+        button {
+            background-color: var(--pink-medium);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            background-color: var(--pink-dark);
+        }
+
+        .progress-container {
+            height: 12px;
+            background-color: var(--pink-light);
+            border-radius: 10px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--pink-dark);
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--pink-light);
+        }
+
+        .expense-item:last-child {
+            border-bottom: none;
+        }
+
+        .expense-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .expense-name {
+            font-weight: 500;
+        }
+
+        .expense-amount {
+            color: var(--pink-dark);
+            font-weight: 600;
+        }
+
+        .delete-btn {
+            background: none;
+            color: #ccc;
+            width: auto;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mon Budget ✨</h1>
+
+    <div class="card">
+        <div class="input-group">
+            <label>Mon Salaire (€)</label>
+            <input type="number" id="salaryInput" placeholder="Ex: 2000" onchange="updateDashboard()">
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="stats">
+            <span id="spentText">Dépensé : 0 €</span>
+            <span id="leftText">Reste : 0 €</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="input-group">
+            <label>Qu'as-tu acheté ? 🛍️</label>
+            <input type="text" id="expenseName" placeholder="Ex: Zara, Sephora, Resto...">
+        </div>
+        <div class="input-group">
+            <label>Combien ça a coûté ? (€)</label>
+            <input type="number" id="expenseAmount" placeholder="Ex: 45">
+        </div>
+        <button onclick="addExpense()">Ajouter la dépense</button>
+    </div>
+
+    <div class="card" id="expenseList">
+        <!-- Les dépenses s'afficheront ici -->
+    </div>
+</div>
+
+<script>
+    let expenses = JSON.parse(localStorage.getItem('myExpenses')) || [];
+    let salary = localStorage.getItem('mySalary') || '';
+
+    document.getElementById('salaryInput').value = salary;
+    renderExpenses();
+    updateDashboard();
+
+    function updateDashboard() {
+        salary = document.getElementById('salaryInput').value;
+        localStorage.setItem('mySalary', salary);
+        
+        let totalSpent = expenses.reduce((total, exp) => total + exp.amount, 0);
+        let left = salary - totalSpent;
+        let percentage = salary > 0 ? (totalSpent / salary) * 100 : 0;
+        
+        if (percentage > 100) percentage = 100;
+
+        document.getElementById('spentText').innerText = `Dépensé : ${totalSpent} €`;
+        document.getElementById('leftText').innerText = `Reste : ${left} €`;
+        document.getElementById('progressBar').style.width = `${percentage}%`;
+    }
+
+    function addExpense() {
+        const name = document.getElementById('expenseName').value;
+        const amount = parseFloat(document.getElementById('expenseAmount').value);
+
+        if (name && amount > 0) {
+            expenses.push({ id: Date.now(), name, amount });
+            localStorage.setItem('myExpenses', JSON.stringify(expenses));
+            
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expenseAmount').value = '';
+            
+            renderExpenses();
+            updateDashboard();
+        }
+    }
+
+    function deleteExpense(id) {
+        expenses = expenses.filter(exp => exp.id !== id);
+        localStorage.setItem('myExpenses', JSON.stringify(expenses));
+        renderExpenses();
+        updateDashboard();
+    }
+
+    function renderExpenses() {
+        const list = document.getElementById('expenseList');
+        list.innerHTML = '';
+        
+        if (expenses.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#ccc; font-size:14px; padding: 10px;">Aucune dépense pour l\'instant 🌸</div>';
+            return;
+        }
+
+        expenses.forEach(exp => {
+            const item = document.createElement('div');
+            item.className = 'expense-item';
+            item.innerHTML = `
+                <div class="expense-info">
+                    <span class="expense-name">${exp.name}</span>
+                    <span class="expense-amount">${exp.amount} €</span>
+                </div>
+                <button class="delete-btn" onclick="deleteExpense(${exp.id})">❌</button>
+            `;
+            list.appendChild(item);
+        });
+    }
+</script>
+
+</body>
+</html>
